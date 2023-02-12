@@ -1,11 +1,13 @@
 import express from "express"
+import { auth } from "../middleware/auth.js";
+
 import { checkPostProduct, UploadKkProduct, getKkProducts, checkPutProduct, updateKkProduct, checkDeleteProduct, deleteKkProduct } from "../services/products.service.js"
 
 const router = express.Router()
 
 
 
-router.post("/products", async function (request, response) {
+router.post("/products", auth, async function (request, response) {
     const data = request.body
     const checkProduct = await checkPostProduct(data)
     if (!checkProduct) {
@@ -16,13 +18,13 @@ router.post("/products", async function (request, response) {
     }
 })
 
-router.get("/products", async function (request, response) {
+router.get("/products", auth, async function (request, response) {
     const getProducts = await getKkProducts()
     response.send({ message: "received from database", products: getProducts })
 })
 
 
-router.put("/products/:id", async function (request, response) {
+router.put("/products/:id", auth, async function (request, response) {
     const { id } = request.params;
     console.log(id)
     const data = request.body
@@ -41,7 +43,7 @@ router.put("/products/:id", async function (request, response) {
 })
 
 
-router.delete("/products/:id", async function (request, response) {
+router.delete("/products/:id", auth, async function (request, response) {
     const { id } = request.params
     const checkProduct = await checkDeleteProduct(id)
     if (checkProduct) {

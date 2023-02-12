@@ -19,7 +19,8 @@ export async function updateKkProduct(id, data) {
             name: data.name,
             image: data.image,
             rate: data.rate,
-            quantity: data.quantity
+            pieces: data.pieces,
+            quantity: 1
         }
     });
 }

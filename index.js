@@ -3,7 +3,10 @@ import cors from "cors"
 import { MongoClient } from "mongodb";
 import productsRouter from "./routes/products.routes.js"
 import ordersRouter from "./routes/orders.routes.js"
+import authorizationRouter from "./routes/authorization.routes.js"
+import * as dotenv from "dotenv"
 
+dotenv.config()
 const app = express();
 app.use(express.json())
 app.use(cors())
@@ -20,7 +23,7 @@ app.get("/", function (request, response) {
 
 app.use("/kkproducts", productsRouter)
 app.use("/kkorders", ordersRouter)
-
+app.use("/", authorizationRouter)
 export { client }
 
 app.listen(PORT, () => console.log(`The server started in: ${PORT} ✨✨`));
