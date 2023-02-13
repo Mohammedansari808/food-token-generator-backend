@@ -1,8 +1,10 @@
 import express from "express"
+import { auth } from "../middleware/auth.js";
+
 import { checkKkOrder, uploadKkOrder, getKkOrders, getKkDailyChart, getKkMonthlyChart, checkKkOrderStatus, updateKkOrderStatus, checkKitchenKKOrders, updateKitchenKkOrders } from "../services/orders.service.js";
 
 const router = express.Router()
-router.post("/orders", async function (request, response) {
+router.post("/orders", auth, async function (request, response) {
     let data = request.body;
     let newDate = new Date(data.date);
     let only_date = new Date(data.only_date);
@@ -21,7 +23,7 @@ router.post("/orders", async function (request, response) {
     }
 })
 
-router.get("/orders", async function (request, response) {
+router.get("/orders", auth, async function (request, response) {
     const getOrders = await getKkOrders();
     const getDailyChart = await getKkDailyChart()
     const getMonthlyChart = await getKkMonthlyChart()
@@ -29,7 +31,7 @@ router.get("/orders", async function (request, response) {
 })
 
 
-router.put("/orders", async function (request, response) {
+router.put("/orders", auth, async function (request, response) {
     const data = request.body
     const checkOrderStatus = await checkKkOrderStatus(data)
     if (checkOrderStatus) {
@@ -44,7 +46,7 @@ router.put("/orders", async function (request, response) {
     }
 })
 
-router.put("/kitchenorders", async function (request, response) {
+router.put("/kitchenorders", auth, async function (request, response) {
     const data = request.body
     const checkKitchenOrders = await checkKitchenKKOrders(data)
     if (checkKitchenOrders) {

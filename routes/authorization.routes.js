@@ -4,12 +4,14 @@ import jwt from "jsonwebtoken";
 import { auth } from "../middleware/auth.js";
 import nodemailer from "nodemailer"
 import { resetauth } from "../middleware/resetauth.js";
-
-const router = express.Router()
-
 import { client } from "../index.js";
 import { ObjectId } from "mongodb";
+import { fullLink } from "../link.js";
+import { checkSignupUsername, checkSignupEmail, checkLoginUsername, checkLoginEmail, signupInsertData, signupVerifyLinkCheck, loginInsert, LoginDataCheck, loginCheckForForget, checkForOTP, oTPcheckVerification, checkUserForPasschangr } from "../services/authorization.service.js";
 
+
+
+const router = express.Router()
 router.get("/helo", function (request, response) {
     response.send("🙋‍♂️, 🌏 🎊✨🤩");
 });
@@ -17,13 +19,13 @@ router.get("/helo", function (request, response) {
 
 router.post("/signup", async function (request, response) {
     const { fullname, username, password, email } = request.body
-    const isSCheck = await client.db("kkrestaurant").collection("signupusers").findOne({ username: username })
-    const isSCheckE = await client.db("kkrestaurant").collection("signusers").findOne({ email: email })
-    const isCheck = await client.db("kkrestaurant").collection("login").findOne({ username: username })
-    const isCheckE = await client.db("kkrestaurant").collection("login").findOne({ email: email })
+    const isSCheck = await checkSignupUsername(username)
+    const isSCheckE = await checkSignupEmail(email)
+    const isLCheck = await checkLoginUsername(username)
+    const isLCheckE = await checkLoginEmail(email)
 
 
-    if (!isCheck && !isCheckE && !isSCheck && !isSCheckE) {
+    if (!isLCheck && !isLCheckE && !isSCheck && !isSCheckE) {
 
         const Hashedpassword = await Hashed(password)
         async function Hashed(password) {
@@ -46,9 +48,9 @@ router.post("/signup", async function (request, response) {
             password: Hashedpassword,
             role_id: 0,
             email: email,
-            verify_link: `http://localhost:3000/verify_link/${username}/${tempLink}`
+            verify_link: `${fullLink}/verify_link/${username}/${tempLink}`
         }
-        const insertData = await client.db("kkrestaurant").collection("signupusers").insertOne(finalData)
+        const insertData = await signupInsertData(finalData)
         if (insertData) {
             async function main(finalData) {
                 let username = finalData.username;
@@ -102,8 +104,8 @@ router.post("/signup", async function (request, response) {
 
 router.get("/verify_link/:username/:id", async function (request, response) {
     const { username, id } = request.params
-    const link = `http://localhost:3000/verify_link/${username}/${id}`
-    const isCheck = await client.db("kkrestaurant").collection("signupusers").findOne({ verify_link: link })
+    const link = `${fullLink}/verify_link/${username}/${id}`
+    const isCheck = await signupVerifyLinkCheck(link)
 
     if (isCheck) {
         let checkData = {
@@ -112,11 +114,10 @@ router.get("/verify_link/:username/:id", async function (request, response) {
             role_id: isCheck.role_id,
             email: isCheck.email,
         }
-        const insertData = await client.db("kkrestaurant").collection("login").insertOne(checkData)
+        const insertData = await loginInsert(checkData)
 
         if (insertData) {
             response.send({ message: "sign success" })
-            // await client.db("kkrestaurant").collection("userurls").insertOne({ username: username })
             client.db("kkrestaurant").collection("signupusers").updateOne({ username: username }, { $unset: { verify_link: link } })
 
 
@@ -130,8 +131,7 @@ router.get("/verify_link/:username/:id", async function (request, response) {
 
 router.post("/login", async function (request, response) {
     const data = request.body
-
-    const loginData = await client.db("kkrestaurant").collection("login").findOne({ username: data.username })
+    const loginData = await LoginDataCheck(data)
     if (loginData) {
 
         async function comparPassword() {
@@ -150,11 +150,9 @@ router.post("/login", async function (request, response) {
 
 })
 
-
-
 router.post("/forgetpassword", async function (request, response) {
     const { username, email } = request.body;
-    const data = await client.db("kkrestaurant").collection("login").findOne({ username: username })
+    const data = await loginCheckForForget(username)
     if (data.username == username && data.email == email) {
         console.log("hello")
         let tempLink = ""
@@ -169,12 +167,10 @@ router.post("/forgetpassword", async function (request, response) {
             otp: otp,
             email: email,
             username: username,
-            tempLink: `http://localhost:3000/verification-link/${username}/${tempLink}`,
+            tempLink: `${fullLink}/verification-link/${username}/${tempLink}`,
         }
-        console.log(otpData)
-        const checkData = await client.db("kkrestaurant").collection("otp").findOne({ username: username })
+        const checkData = await checkForOTP(username)
 
-        console.log(checkData)
         if (!checkData) {
             const otpInsertData = await client.db("kkrestaurant").collection("otp").insertOne(otpData)
 
@@ -258,7 +254,7 @@ router.post("/verification-link/:username/:id", async function (request, respons
     const { username, id } = request.params
 
     let data = request.body
-    const otpData = await client.db("kkrestaurant").collection("otp").findOne({ username: username })
+    const otpData = await oTPcheckVerification(username)
 
     if (parseInt(data.otp) == parseInt(otpData.otp)) {
         const token = jwt.sign({ _id: new ObjectId(data._id) }, process.env.RESET_KEY)
@@ -282,7 +278,7 @@ router.put("/password-change/:username", resetauth, async function (request, res
         const HashedPassword = await bcrypt.hash(password, salt)
         return HashedPassword
     }
-    let checkuser = await client.db("kkrestaurant").collection("login").updateOne({ username: username }, { $set: { password: Hashedpassword } })
+    let checkuser = await checkUserForPasschangr(username, Hashedpassword)
     if (checkuser) {
         response.send({ message: "success" })
     } else if (response.status === 404) {
@@ -295,3 +291,5 @@ router.put("/password-change/:username", resetauth, async function (request, res
 
 })
 export default router
+
+

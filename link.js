@@ -1,0 +1,1 @@
+export const fullLink = "http://localhost:3000"
