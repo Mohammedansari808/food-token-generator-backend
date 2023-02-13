@@ -1,27 +1,21 @@
 import { client } from "../index.js";
 
-export async function checkUserForPasschangr(username, Hashedpassword) {
+export async function checkUserPassChange(username, Hashedpassword) {
     return await client.db("kkrestaurant").collection("login").updateOne({ username: username }, { $set: { password: Hashedpassword } });
 }
-export async function oTPcheckVerification(username) {
+export async function OtpCheckForVerification(username) {
     return await client.db("kkrestaurant").collection("otp").findOne({ username: username });
 }
-export async function checkForOTP(username) {
+export async function otpCheck(username) {
     return await client.db("kkrestaurant").collection("otp").findOne({ username: username });
 }
-export async function loginCheckForForget(username) {
+export async function LoginCheckForget(username) {
     return await client.db("kkrestaurant").collection("login").findOne({ username: username });
 }
-export async function LoginDataCheck(data) {
+export async function loginDataCheck(data) {
     return await client.db("kkrestaurant").collection("login").findOne({ username: data.username });
 }
-export async function loginInsert(checkData) {
-    return await client.db("kkrestaurant").collection("login").insertOne(checkData);
-}
-export async function signupVerifyLinkCheck(link) {
-    return await client.db("kkrestaurant").collection("signupusers").findOne({ verify_link: link });
-}
-export async function signupInsertData(finalData) {
+export async function InsertSignup(finalData) {
     return await client.db("kkrestaurant").collection("signupusers").insertOne(finalData);
 }
 export async function checkSignupUsername(username) {

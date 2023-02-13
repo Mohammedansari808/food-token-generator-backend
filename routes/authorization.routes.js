@@ -9,6 +9,7 @@ const router = express.Router()
 
 import { client } from "../index.js";
 import { ObjectId } from "mongodb";
+import { checkSignupUsername, checkSignupEmail, checkLoginUsername, checkLoginEmail, InsertSignup, loginDataCheck, LoginCheckForget, otpCheck, OtpCheckForVerification, checkUserPassChange } from "../services/authorization.service.js";
 import { fullLink } from "../link.js";
 
 router.get("/helo", function (request, response) {
@@ -20,11 +21,11 @@ router.post("/signup", async function (request, response) {
     const { fullname, username, password, email } = request.body
     const isSCheck = await checkSignupUsername(username)
     const isSCheckE = await checkSignupEmail(email)
-    const isLCheck = await checkLoginUsername(username)
-    const isLCheckE = await checkLoginEmail(email)
+    const isCheck = await checkLoginUsername(username)
+    const isCheckE = await checkLoginEmail(email)
 
 
-    if (!isLCheck && !isLCheckE && !isSCheck && !isSCheckE) {
+    if (!isCheck && !isCheckE && !isSCheck && !isSCheckE) {
 
         const Hashedpassword = await Hashed(password)
         async function Hashed(password) {
@@ -49,7 +50,7 @@ router.post("/signup", async function (request, response) {
             email: email,
             verify_link: `${fullLink}/verify_link/${username}/${tempLink}`
         }
-        const insertData = await signupInsertData(finalData)
+        const insertData = await InsertSignup(finalData)
         if (insertData) {
             async function main(finalData) {
                 let username = finalData.username;
@@ -104,7 +105,7 @@ router.post("/signup", async function (request, response) {
 router.get("/verify_link/:username/:id", async function (request, response) {
     const { username, id } = request.params
     const link = `${fullLink}/verify_link/${username}/${id}`
-    const isCheck = await signupVerifyLinkCheck(link)
+    const isCheck = await client.db("kkrestaurant").collection("signupusers").findOne({ verify_link: link })
 
     if (isCheck) {
         let checkData = {
@@ -113,7 +114,7 @@ router.get("/verify_link/:username/:id", async function (request, response) {
             role_id: isCheck.role_id,
             email: isCheck.email,
         }
-        const insertData = await newFunction(checkData)
+        const insertData = await client.db("kkrestaurant").collection("login").insertOne(checkData)
 
         if (insertData) {
             response.send({ message: "sign success" })
@@ -131,7 +132,8 @@ router.get("/verify_link/:username/:id", async function (request, response) {
 
 router.post("/login", async function (request, response) {
     const data = request.body
-    const loginData = await client.db("kkrestaurant").collection("login").findOne({ username: data.username })
+
+    const loginData = await loginDataCheck(data)
     if (loginData) {
 
         async function comparPassword() {
@@ -150,9 +152,11 @@ router.post("/login", async function (request, response) {
 
 })
 
+
+
 router.post("/forgetpassword", async function (request, response) {
     const { username, email } = request.body;
-    const data = await client.db("kkrestaurant").collection("login").findOne({ username: username })
+    const data = await LoginCheckForget(username)
     if (data.username == username && data.email == email) {
         console.log("hello")
         let tempLink = ""
@@ -169,8 +173,10 @@ router.post("/forgetpassword", async function (request, response) {
             username: username,
             tempLink: `${fullLink}/verification-link/${username}/${tempLink}`,
         }
-        const checkData = await client.db("kkrestaurant").collection("otp").findOne({ username: username })
+        console.log(otpData)
+        const checkData = await otpCheck(username)
 
+        console.log(checkData)
         if (!checkData) {
             const otpInsertData = await client.db("kkrestaurant").collection("otp").insertOne(otpData)
 
@@ -254,7 +260,7 @@ router.post("/verification-link/:username/:id", async function (request, respons
     const { username, id } = request.params
 
     let data = request.body
-    const otpData = await client.db("kkrestaurant").collection("otp").findOne({ username: username })
+    const otpData = await OtpCheckForVerification(username)
 
     if (parseInt(data.otp) == parseInt(otpData.otp)) {
         const token = jwt.sign({ _id: new ObjectId(data._id) }, process.env.RESET_KEY)
@@ -278,7 +284,7 @@ router.put("/password-change/:username", resetauth, async function (request, res
         const HashedPassword = await bcrypt.hash(password, salt)
         return HashedPassword
     }
-    let checkuser = await client.db("kkrestaurant").collection("login").updateOne({ username: username }, { $set: { password: Hashedpassword } })
+    let checkuser = await checkUserPassChange(username, Hashedpassword)
     if (checkuser) {
         response.send({ message: "success" })
     } else if (response.status === 404) {
@@ -292,30 +298,4 @@ router.put("/password-change/:username", resetauth, async function (request, res
 })
 export default router
 
-async function newFunction(checkData) {
-    return await client.db("kkrestaurant").collection("login").insertOne(checkData);
-}
 
-async function signupVerifyLinkCheck(link) {
-    return await client.db("kkrestaurant").collection("signupusers").findOne({ verify_link: link });
-}
-
-async function signupInsertData(finalData) {
-    return await client.db("kkrestaurant").collection("signupusers").insertOne(finalData);
-}
-
-async function checkSignupUsername(username) {
-    return await client.db("kkrestaurant").collection("signupusers").findOne({ username: username });
-}
-
-async function checkSignupEmail(email) {
-    return await client.db("kkrestaurant").collection("signusers").findOne({ email: email });
-}
-
-async function checkLoginUsername(username) {
-    return await client.db("kkrestaurant").collection("login").findOne({ username: username });
-}
-
-async function checkLoginEmail(email) {
-    return await client.db("kkrestaurant").collection("login").findOne({ email: email });
-}
