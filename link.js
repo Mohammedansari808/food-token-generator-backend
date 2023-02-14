@@ -1,1 +1,1 @@
-export const fullLink = "https://localhost:3000"
+export const fullLink = "https://food-token-generator-frontend.onrender.com"
