@@ -46,7 +46,7 @@ router.post("/signup", async function (request, response) {
             fullname: fullname,
             username: username,
             password: Hashedpassword,
-            role_id: 0,
+            role_id: 1,
             email: email,
             verify_link: `${fullLink}/verify_link/${username}/${tempLink}`
         }

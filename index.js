@@ -12,9 +12,9 @@ dotenv.config()
 const app = express();
 app.use(express.json())
 app.use(cors())
-//
-// const MONGO_URL = "mongodb://127.0.0.1";
-const client = new MongoClient(process.env.MONGO_URL)
+//process.env.MONGO_URL
+const MONGO_URL = "mongodb://127.0.0.1";
+const client = new MongoClient(MONGO_URL)
 await client.connect()
 console.log("Mongo is connected")
 const PORT = 4000;
