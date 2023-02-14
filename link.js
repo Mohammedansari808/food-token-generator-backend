@@ -1,1 +1,1 @@
-export const fullLink = "https://food-token-generator-frontend.onrender.com"
+export const fullLink = "https://food-token-generator.netlify.app/"
