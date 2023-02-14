@@ -6,7 +6,7 @@ import { checkPostProduct, UploadKkProduct, getKkProducts, checkPutProduct, upda
 const router = express.Router()
 
 
-
+//to post product
 router.post("/products", auth, async function (request, response) {
     const data = request.body
     const checkProduct = await checkPostProduct(data)
@@ -18,12 +18,14 @@ router.post("/products", auth, async function (request, response) {
     }
 })
 
+
+//to fetch products
 router.get("/products", auth, async function (request, response) {
     const getProducts = await getKkProducts()
     response.send({ message: "received from database", products: getProducts })
 })
 
-
+//to Update products
 router.put("/products/:id", auth, async function (request, response) {
     const { id } = request.params;
     console.log(id)
@@ -42,7 +44,7 @@ router.put("/products/:id", auth, async function (request, response) {
     }
 })
 
-
+//to delete products
 router.delete("/products/:id", auth, async function (request, response) {
     const { id } = request.params
     const checkProduct = await checkDeleteProduct(id)

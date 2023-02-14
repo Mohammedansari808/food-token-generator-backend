@@ -12,21 +12,18 @@ import { ObjectId } from "mongodb";
 import { checkSignupUsername, checkSignupEmail, checkLoginUsername, checkLoginEmail, InsertSignup, loginDataCheck, LoginCheckForget, otpCheck, OtpCheckForVerification, checkUserPassChange } from "../services/authorization.service.js";
 import { fullLink } from "../link.js";
 
-router.get("/helo", function (request, response) {
-    response.send("🙋‍♂️, 🌏 🎊✨🤩");
-});
-
 
 router.post("/signup", async function (request, response) {
     const { fullname, username, password, email } = request.body
+    //checking both signup and users collection 
     const isSCheck = await checkSignupUsername(username)
     const isSCheckE = await checkSignupEmail(email)
     const isCheck = await checkLoginUsername(username)
     const isCheckE = await checkLoginEmail(email)
 
-
+    //if not data will be added in signup collection with verification link, not in login collection
     if (!isCheck && !isCheckE && !isSCheck && !isSCheckE) {
-
+        //generating hashed password using bcrypt and salt
         const Hashedpassword = await Hashed(password)
         async function Hashed(password) {
             const NO_OF_ROUNDS = 10
@@ -51,6 +48,7 @@ router.post("/signup", async function (request, response) {
             verify_link: `${fullLink}/verify_link/${username}/${tempLink}`
         }
         const insertData = await InsertSignup(finalData)
+        //after inserting to signup collection mail will sent to signed up email
         if (insertData) {
             async function main(finalData) {
                 let username = finalData.username;
@@ -102,9 +100,12 @@ router.post("/signup", async function (request, response) {
     }
 })
 
+//after signup verification that link will expired and the data will added to login 
+//collection
 router.get("/verify_link/:username/:id", async function (request, response) {
     const { username, id } = request.params
     const link = `${fullLink}/verify_link/${username}/${id}`
+    //checking the verified is same as the link in database
     const isCheck = await client.db("kkrestaurant").collection("signupusers").findOne({ verify_link: link })
 
     if (isCheck) {
@@ -118,7 +119,7 @@ router.get("/verify_link/:username/:id", async function (request, response) {
 
         if (insertData) {
             response.send({ message: "sign success" })
-            // await client.db("kkrestaurant").collection("userurls").insertOne({ username: username })
+            //this link will deleted so the link will get expired
             client.db("kkrestaurant").collection("signupusers").updateOne({ username: username }, { $unset: { verify_link: link } })
 
 
@@ -130,17 +131,21 @@ router.get("/verify_link/:username/:id", async function (request, response) {
 
 })
 
+//in login checks the username and password after checking a token will be given to particular user
+//for authorization
 router.post("/login", async function (request, response) {
     const data = request.body
 
     const loginData = await loginDataCheck(data)
+    //checking login and username
     if (loginData) {
-
+        //comparing password using bcrypt
         async function comparPassword() {
             return bcrypt.compare(data.password, loginData.password);
         }
         const comparePassword = await comparPassword()
         if (comparePassword) {
+            //generating token
             const token = jwt.sign({ _id: new ObjectId(loginData._id) }, process.env.MY_KEY)
             response.send({ message: "successful login", token: token, role_id: loginData.role_id, email: loginData.email })
         } else {
@@ -153,12 +158,13 @@ router.post("/login", async function (request, response) {
 })
 
 
-
+//in forget password after checking the username and mail an OTP and a link will be
+//sent to particular mail 
 router.post("/forgetpassword", async function (request, response) {
     const { username, email } = request.body;
+    //checking the usename and email
     const data = await LoginCheckForget(username)
     if (data.username == username && data.email == email) {
-        console.log("hello")
         let tempLink = ""
         const character = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz123456789"
         const characters = character.length
@@ -166,6 +172,7 @@ router.post("/forgetpassword", async function (request, response) {
             tempLink += character.charAt(Math.floor(Math.random() * characters))
 
         }
+        //for random otp
         const otp = Math.floor(1000 + Math.random() * 9000)
         const otpData = {
             otp: otp,
@@ -173,14 +180,13 @@ router.post("/forgetpassword", async function (request, response) {
             username: username,
             tempLink: `${fullLink}/verification-link/${username}/${tempLink}`,
         }
-        console.log(otpData)
         const checkData = await otpCheck(username)
 
-        console.log(checkData)
         if (!checkData) {
+            //otp inserted to database
             const otpInsertData = await client.db("kkrestaurant").collection("otp").insertOne(otpData)
 
-
+            //otp countdown set after inserting it to database
             if (otpInsertData) {
                 setTimeout(async () => {
                     await client.db("kkrestaurant").collection("otp").deleteOne({ otp: otpData.otp })
@@ -189,17 +195,15 @@ router.post("/forgetpassword", async function (request, response) {
 
 
 
-
+            //this otp and link will be sent to the user
             async function main(finalData) {
 
-                // Generate test SMTP service account from ethereal.email
-                // Only needed if you don't have a real mail account for testing
+
                 let username = finalData.username;
                 let otp = finalData.otp;
                 let email = finalData.email;
                 let tempLink = finalData.tempLink
                 let testAccount = await nodemailer.createTestAccount();
-                // create reusable transporter object using the default SMTP transport
 
 
                 let transporter = await nodemailer.createTransport({
@@ -215,7 +219,6 @@ router.post("/forgetpassword", async function (request, response) {
                     },
                 });
 
-                // send mail with defined transport object
 
                 let info = await transporter.sendMail({
                     from: '"kkrestaurant" <foo@example.com>', // sender address
@@ -255,7 +258,7 @@ router.post("/forgetpassword", async function (request, response) {
 
 });
 
-
+//verification link for forget password
 router.post("/verification-link/:username/:id", async function (request, response) {
     const { username, id } = request.params
 
@@ -271,11 +274,12 @@ router.post("/verification-link/:username/:id", async function (request, respons
 
 })
 
+
+//after verification completed password change page will open for password change separate auth 
+//auth is created
 router.put("/password-change/:username", resetauth, async function (request, response) {
     let data = request.body
     const { username } = request.params
-
-
 
     const Hashedpassword = await Hashed(data.newpassword)
     async function Hashed(password) {

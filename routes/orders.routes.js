@@ -4,6 +4,7 @@ import { auth } from "../middleware/auth.js";
 import { checkKkOrder, uploadKkOrder, getKkOrders, getKkDailyChart, getKkMonthlyChart, checkKkOrderStatus, updateKkOrderStatus, checkKitchenKKOrders, updateKitchenKkOrders } from "../services/orders.service.js";
 
 const router = express.Router()
+//this is to post orders
 router.post("/orders", auth, async function (request, response) {
     let data = request.body;
     let newDate = new Date(data.date);
@@ -23,6 +24,7 @@ router.post("/orders", auth, async function (request, response) {
     }
 })
 
+//to fetch orders
 router.get("/orders", auth, async function (request, response) {
     const getOrders = await getKkOrders();
     const getDailyChart = await getKkDailyChart()
@@ -30,7 +32,8 @@ router.get("/orders", auth, async function (request, response) {
     response.send({ message: "received from database", getOrders, getDailyChart, getMonthlyChart })
 })
 
-
+//this is for status page after clicking remove by admin it updates order_status in the collection
+//to true so that it cannot be displayed in the TOKEN BOARD 
 router.put("/orders", auth, async function (request, response) {
     const data = request.body
     const checkOrderStatus = await checkKkOrderStatus(data)
@@ -46,6 +49,9 @@ router.put("/orders", auth, async function (request, response) {
     }
 })
 
+
+//this is for status page after clicking ready by people in kitchen it updates kitchen_status in the collection
+//to true so that it cannot be displayed in the ORDERS
 router.put("/kitchenorders", auth, async function (request, response) {
     const data = request.body
     const checkKitchenOrders = await checkKitchenKKOrders(data)
